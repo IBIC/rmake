@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+	then
+	echo "You need to pass something."
+	exit 1
+fi
+
+COMMAND=$1
+
+tempfile=$(mktemp job.XXX)
+echo "Working with $tempfile"
+
+sed -e "s/MY-TARGET/$COMMAND/" -e "s/NAME/$tempfile/" my-job > $tempfile
+
+# submit jobs to the grid engine
+qsub -S /bin/bash -sync y $tempfile
+
+rm $tempfile

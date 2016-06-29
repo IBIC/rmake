@@ -1,0 +1,14 @@
+#!/bin/bash
+
+MAKETARGET=MY-TARGET
+
+#SGE submission options
+#$ -cwd
+#$ -V
+#$ -t 1-9
+#$ -N NAME
+export OMP_NUM_THREADS=1
+num=$(printf "%d00" $SGE_TASK_ID)
+
+cd $num 
+make $MAKETARGET

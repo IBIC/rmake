@@ -1,41 +1,124 @@
 #!/bin/bash
 
+### USAGE
+
+make_changes="
+Options for the make call have been converted to lower case. 
+These are the changes:
+
+	-I=	include dir		->	-a=
+	-B	unconditional make	->	-b
+	-L	check symlink times	->	-m
+	-R	no built in variables	->	-x
+	-W=	consider always new	->	-z=
+	
+The following flags are ignored:
+	-C, -j, -l
+"
+
+usage() {
+    cat <<EOF
+
+This is the help file for rmake. To access make's help, use rmake -h.
+
+Exit codes: 1 (general), 11 (illegal option)
+
+Options to rmake:
+-----------------
+
+	-D	Recon; don't submit qsub job.
+	-H	Print this help message and exit.
+	-N=	Set job name; if not set, a random name will be chosen.
+	-S=	Run qsub on these subjects only.
+	-T=	Set the target for make.
+
+Options to make:
+----------------
+$make_changes
+
+EOF
+}
+
+make_changes(){
+    echo ''
+    printf '#%.0s' {1..60}
+    echo ''
+
+    echo "$make_changes"
+}
+
+### ACTUAL CODE
+
 params=$@
 
-if [[ "$params" == *":"* ]]
+if [ $# -eq 0 ]
 then
-    IFS=':'
-    paramArr=($params)
-    commandparam=${paramArr[0]}
-    makeparam=$(echo ${paramArr[1]} | sed -e 's/^[[:space:]]*//' \
-	-e 's/[[:space:]]*$//')
-else
-    commandparam=$@
-    makeparam=""
+    echo "No parameters supplied."
+    echo "Running make with no flags."
 fi
 
-tempfile=$(mktemp job.XXX)
-echo "Working with $tempfile"
-name=$tempfile
+name=$(pwgen 5 1)
+subjects=$(find . -name 'Makefile' | sed -e 's|/Makefile||' -e 's|./||')
 
-while getopts "n:" opt $commandparam;
+makeparam=
+quit=
+MAKETARGET=''
+testmake=n
+quiet=n
+delete=y
+while getopts ":abdef:ghijklno:pqrstvwxz:DHMN:QS:T:X" opt
 do
-    case $opt in 
-	n)
-	    name=$OPTARG
-	    ;;
+    case $opt in
+#	Options to make
+	a) makeparam=$makeparam" --include-dir=$OPTARG" ;;
+	b) makeparam=$makeparam" --always-make" ;;
+	d) makeparam=$makeparam" --debug" ;;
+	e) makeparam=$makeparam" --environment-overrides" ;;
+	f) makeparam=$makeparam" --file=$OPTARG" ;;
+	g) makeparam=$makeparam" --no-keep-going" ;;
+	h) make --help ; make_changes ; exit 0 ;;
+	i) makeparam=$makeparam" --ignore errors" ;;
+	j) echo "You can't parallize make while using SGE!" ; exit 11 ;;
+	k) makeparam=$makeparam" --keep-going" ;;
+	l) echo "You can't parallize make while using SGE!" ; exit 11 ;;
+	m) makeparam=$makeparam" --check-symlink-times" ;;
+	n) makeparam=$makeparam" --recon" ;;
+	o) makeparam=$makeparam" --old-file=$OPTARG" ;;
+	p) makeparam=$makeparam" --print-data-base" ;;
+	q) makeparam=$makeparam" --question" ;;
+	r) makeparam=$makeparam" --no-builtin-rules" ;;
+	s) makeparam=$makeparam" --silent" ;;
+	t) makeparam=$makeparam" --touch" ;;
+	v) make --version ; exit 0 ;;
+	w) make --print-directory ; exit 0 ;;
+	x) makeparam=$makeparam" --no-builin-variables" ;;
+	z) makeparam=$makeparam" --what-if=$OPTARG" ;;
+
+#	Options to rmake
+	D) quit='-verify' ;;
+	H) usage ; exit 0 ;;
+	M) testmake=y ;;
+	N) name=$OPTARG ;;
+	Q) quiet=y ;;
+	S) subjects=$OPTARG ;;
+	T) MAKETARGET="$OPTARG" ;;
+	X) delete=n ;;
+
+	?) echo "-$OPTARG is not a valid rmake flag." ; usage ;  exit 11 ;;
     esac
 done
 
-echo "Commands to rmake: $commandparam"
-echo "Flags to make call: $makeparam"
+echo "Subjects: $subjects"
 
-COMMAND=$1
-
+# Wait until here to echo make flags so we get them all.
+if [[ $testmake == y ]]
+then
+    echo $MAKETARGET $makeparam
+    exit 0
+fi
 
 # submit jobs to the grid engine
-# qsub -S /bin/bash -sync y $tempfile
-qsub -S /bin/bash -sync y <<-EOF
+qsub $quit -S /bin/bash -sync y <<-EOF
 	#SGE submission options
 	#$ -cwd
 	#$ -V
@@ -44,8 +127,15 @@ qsub -S /bin/bash -sync y <<-EOF
 	export OMP_NUM_THREADS=1
 	num=\$(printf "%d00" \$SGE_TASK_ID)
 
-	cd \$num 
-	make "$makeparam"
+	cd \$num
+	make $MAKETARGET $makeparam
 EOF
 
-rm $tempfile
+# If we didn't actually qsub, quit here to silence errors
+if [[ $quit == '-verify' ]] ; then exit 0 ; fi
+
+# Unless told not to, cat the ERR and OUT files for jobs in their job order
+if [[ $quiet == n ]] ; then cat $(echo $name.* | rev | sort | rev) ; fi
+
+# Unless told not to, remove files
+if [[ $delete == y ]] ; then \rm $name.* ; fi

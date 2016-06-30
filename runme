@@ -1,5 +1,16 @@
 #!/bin/bash +x
 
+params=$@
+
+if [ $params =~ -- ]
+then
+    echo "Two parts"
+else
+    echo "one part"
+fi
+
+exit 0
+
 if [ $# -eq 0 ]
 	then
 	echo "You need to pass something."

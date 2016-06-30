@@ -1,0 +1,51 @@
+#!/bin/bash
+
+params=$@
+
+if [[ "$params" == *":"* ]]
+then
+    IFS=':'
+    paramArr=($params)
+    commandparam=${paramArr[0]}
+    makeparam=$(echo ${paramArr[1]} | sed -e 's/^[[:space:]]*//' \
+	-e 's/[[:space:]]*$//')
+else
+    commandparam=$@
+    makeparam=""
+fi
+
+tempfile=$(mktemp job.XXX)
+echo "Working with $tempfile"
+name=$tempfile
+
+while getopts "n:" opt $commandparam;
+do
+    case $opt in 
+	n)
+	    name=$OPTARG
+	    ;;
+    esac
+done
+
+echo "Commands to rmake: $commandparam"
+echo "Flags to make call: $makeparam"
+
+COMMAND=$1
+
+
+# submit jobs to the grid engine
+# qsub -S /bin/bash -sync y $tempfile
+qsub -S /bin/bash -sync y <<-EOF
+	#SGE submission options
+	#$ -cwd
+	#$ -V
+	#$ -t 1-9
+	#$ -N $name
+	export OMP_NUM_THREADS=1
+	num=\$(printf "%d00" \$SGE_TASK_ID)
+
+	cd \$num 
+	make "$makeparam"
+EOF
+
+rm $tempfile

@@ -2,63 +2,64 @@
 
 ### USAGE
 
+# don't change the indentation on -I
 make_changes="
 Options for the make call have been converted to lower case. 
-These are the changes:
+These are the changes (* = arg):
 
-	-I=	include dir		->	-a=
-	-B	unconditional make	->	-b
-	-L	check symlink times	->	-m
-	-R	no built in variables	->	-x
-	-W=	consider always new	->	-z=
+   -I *	include dir		->	-a *
+   -B	unconditional make	->	-b
+   -L	check symlink times	->	-m
+   -W *	consider always new	->	-z *
 	
-The following flags are ignored:
-	-C, -j, -l
+ X -C 	Ignored (no use)
+ X -f	Disabled; we need symlinks named 'Makefile'
+ X -j/l Not useful; exit here.
+ X -r/R Built-in rules/variables aren't used in our applications, no reason to
+ 	disable them.
+ X -S	Ignored, '-k' is never inherited in context.
 "
 
 usage() {
-    cat <<EOF
+    cat <<-EOF
 
-This is the help file for rmake. To access make's help, use rmake -h.
+		This is the help file for rmake. To access make's help, use rmake -h.
 
-Exit codes: 1 (general), 11 (illegal option)
+		Options to rmake (* = arg):
+		-----------------
 
-Options to rmake:
------------------
+		   -C	Print only the changes to flags to make
+		   -D	qsub recon; don't submit qsub job.
+		   -H	Print this help message and exit.
+		   -N *	Set job name; if not set, it will be set to target, then a
+		   	random name.
+		   -S *	Run qsub on these subjects only.
+		   -T *	Set the target for make.
 
-	-D	Recon; don't submit qsub job.
-	-H	Print this help message and exit.
-	-N=	Set job name; if not set, a random name will be chosen.
-	-S=	Run qsub on these subjects only.
-	-T=	Set the target for make.
-
-Options to make:
-----------------
-$make_changes
-
+		Options to make:
+		----------------
+		$make_changes
 EOF
 }
 
 make_changes(){
-    echo ''
-    printf '#%.0s' {1..60}
-    echo ''
-
     echo "$make_changes"
 }
 
 ### ACTUAL CODE
 
-params=$@
-
 if [ $# -eq 0 ]
 then
     echo "No parameters supplied."
-    echo "Running make with no flags."
+    echo "Running make with no flags on everyone."
 fi
 
+# Give a phony name, incase they run it without a target
 name=$(pwgen 5 1)
-subjects=$(find . -name 'Makefile' | sed -e 's|/Makefile||' -e 's|./||')
+
+# Find only in one and below
+subjects=$(find . -mindepth 2 -maxdepth 2 -name 'Makefile' | \
+	sed -e 's|/Makefile||' -e 's|./||')
 
 makeparam=
 quit=
@@ -66,76 +67,84 @@ MAKETARGET=''
 testmake=n
 quiet=n
 delete=y
-while getopts ":abdef:ghijklno:pqrstvwxz:DHMN:QS:T:X" opt
+while getopts ":abde:hijklmno:pqstvwz:CDHMN:S:T:" opt
 do
     case $opt in
+
 #	Options to make
 	a) makeparam=$makeparam" --include-dir=$OPTARG" ;;
 	b) makeparam=$makeparam" --always-make" ;;
 	d) makeparam=$makeparam" --debug" ;;
 	e) makeparam=$makeparam" --environment-overrides" ;;
-	f) makeparam=$makeparam" --file=$OPTARG" ;;
-	g) makeparam=$makeparam" --no-keep-going" ;;
-	h) make --help ; make_changes ; exit 0 ;;
+	h) make --help ; make_changes
+		exit 0 ;;
 	i) makeparam=$makeparam" --ignore errors" ;;
-	j) echo "You can't parallize make while using SGE!" ; exit 11 ;;
+	j|l) echo "You can't parallize make while using SGE!"
+		exit 11 ;;
 	k) makeparam=$makeparam" --keep-going" ;;
-	l) echo "You can't parallize make while using SGE!" ; exit 11 ;;
 	m) makeparam=$makeparam" --check-symlink-times" ;;
 	n) makeparam=$makeparam" --recon" ;;
 	o) makeparam=$makeparam" --old-file=$OPTARG" ;;
 	p) makeparam=$makeparam" --print-data-base" ;;
 	q) makeparam=$makeparam" --question" ;;
-	r) makeparam=$makeparam" --no-builtin-rules" ;;
 	s) makeparam=$makeparam" --silent" ;;
 	t) makeparam=$makeparam" --touch" ;;
-	v) make --version ; exit 0 ;;
-	w) make --print-directory ; exit 0 ;;
-	x) makeparam=$makeparam" --no-builin-variables" ;;
+	v) make --version
+		exit 0 ;;
+	w) make --print-directory
+		exit 0 ;;
 	z) makeparam=$makeparam" --what-if=$OPTARG" ;;
 
 #	Options to rmake
+	C) make_changes 
+		exit 0 ;;
 	D) quit='-verify' ;;
-	H) usage ; exit 0 ;;
+	H) usage 
+		exit 0 ;;
 	M) testmake=y ;;
 	N) name=$OPTARG ;;
-	Q) quiet=y ;;
-	S) subjects=$OPTARG ;;
-	T) MAKETARGET="$OPTARG" ;;
-	X) delete=n ;;
+	S) subjects="$OPTARG" 
+		# Sanity check argument to subjects.
+		subjnum=$(echo $subjects | wc -w)
+		if [ $subjnum -eq 1 ]
+		then 
+			echo -en "\n!--- Only one argument to -S; ensure your argument is "
+			echo -e "quoted. ---!\n"
+		fi ;;
+	T) MAKETARGET="TARGET=$OPTARG"
+		name=$OPTARG ;;
 
-	?) echo "-$OPTARG is not a valid rmake flag." ; usage ;  exit 11 ;;
+	?) echo "-$OPTARG is not a valid rmake flag (or is missing an argument)."
+		usage
+		exit 11 ;;
     esac
 done
 
+# Conform whitespace; who knows what you're gonna get.
+subjects=$(echo $subjects | tr '\n' ' ' | sed -e 's/[[:space:]]+/ /g')
 echo "Subjects: $subjects"
 
 # Wait until here to echo make flags so we get them all.
 if [[ $testmake == y ]]
 then
-    echo $MAKETARGET $makeparam
+    echo make "<subj>" $MAKETARGET $makeparam
     exit 0
 fi
 
-# submit jobs to the grid engine
-qsub $quit -S /bin/bash -sync y <<-EOF
-	#SGE submission options
-	#$ -cwd
-	#$ -V
-	#$ -t 1-9
-	#$ -N $name
-	export OMP_NUM_THREADS=1
-	num=\$(printf "%d00" \$SGE_TASK_ID)
+# Submit subjects individually to SGE
+for subj in $subjects
+do
+	qsub $quit -S /bin/bash <<-EOF
+		#SGE submission options
+		#$ -cwd
+		#$ -V
+		#$ -N ${subj}.${name}
 
-	cd \$num
-	make $MAKETARGET $makeparam
-EOF
+		make ${subj} ${MAKETARGET} ${makeparam}
+	EOF
+done
 
-# If we didn't actually qsub, quit here to silence errors
-if [[ $quit == '-verify' ]] ; then exit 0 ; fi
-
-# Unless told not to, cat the ERR and OUT files for jobs in their job order
-if [[ $quiet == n ]] ; then cat $(echo $name.* | rev | sort | rev) ; fi
-
-# Unless told not to, remove files
-if [[ $delete == y ]] ; then \rm $name.* ; fi
+if [[ $quit != '-verify' ]]
+	then
+		echo "$(echo $subjects | wc -w) jobs submitted."
+fi

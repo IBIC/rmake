@@ -31,9 +31,11 @@ usage() {
 		   -C	Print only the changes to flags to make
 		   -D	qsub recon; don't submit qsub job.
 		   -H	Print this help message and exit.
+		   -M   Debug; print arguments to make call. (No qsub submission.)
 		   -N *	Set job name; if not set, it will be set to target, then a
 		   	random name.
-		   -S *	Run qsub on these subjects only.
+		   -P   Append <date>_<time> to the jobid.
+		   -S *	Run qsub on these subjects only; if not set, run on all.
 		   -T *	Set the target for make.
 
 		Options to make:
@@ -48,6 +50,17 @@ make_changes(){
 
 ### ACTUAL CODE
 
+# Make sure directory is set up for recursive make, which our script relies on.
+if [ ! -f Makefile ]
+	then
+		echo 
+		echo "In order to run rmake, make needs to be able to run recursively."
+		echo "Please set up a recursive makefile in $PWD named 'Makefile'."
+		echo
+		exit 1
+fi
+
+# Run rmake without arguments, but warn user.
 if [ $# -eq 0 ]
 then
     echo "No parameters supplied."
@@ -65,9 +78,8 @@ makeparam=
 quit=
 MAKETARGET=''
 testmake=n
-quiet=n
-delete=y
-while getopts ":abde:hijklmno:pqstvwz:CDHMN:S:T:" opt
+setdate=n
+while getopts ":abde:hijklmno:pqstvwz:CDHMN:PS:T:" opt
 do
     case $opt in
 
@@ -103,6 +115,8 @@ do
 		exit 0 ;;
 	M) testmake=y ;;
 	N) name=$OPTARG ;;
+	P) setdate=y 
+		date=$(date +%y%m%d-%H-%I) ;;
 	S) subjects="$OPTARG" 
 		# Sanity check argument to subjects.
 		subjnum=$(echo $subjects | wc -w)
@@ -129,6 +143,11 @@ if [[ $testmake == y ]]
 then
     echo make "<subj>" $MAKETARGET $makeparam
     exit 0
+fi
+
+if [[ $setdate == y ]]
+	then
+		name=${name}.${date}
 fi
 
 # Submit subjects individually to SGE

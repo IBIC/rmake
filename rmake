@@ -2,7 +2,8 @@
 
 ### USAGE
 
-# don't change the indentation on -I
+# please set to 80 chars wide
+
 make_changes="
 Options for the make call have been converted to lower case. 
 These are the changes (* = arg):

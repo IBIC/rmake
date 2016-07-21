@@ -104,7 +104,7 @@ Select subjects like so:
 
 You can also use a regex. For example, to select only subjects beginning with `100-`:
 
->`rmake -T sleep -S "100???`
+>`rmake -T sleep -S "100???"`
 
 Note that the regex must be quoted as well, as it is expanded by the shell before being sent to `rmake`.
 

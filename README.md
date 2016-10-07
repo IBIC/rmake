@@ -3,15 +3,19 @@ Running make on an SGE
 
 # Introduction
 
-The purpose of `rmake`<sup>1</sup> is to supercede `qmake` and submit jobs to the grid engine in a more manageable way (read: jobs Tara can kick off her machines).
+The purpose of `rmake`<sup>1</sup> is to execute a makefile by submitting individual `make` commands as individual jobs to the gridengine. This is necessary when (1) syntax of your makefile is complicated enough that it does not work correctly wtih `qmake`, or (2) when you want to use the global queue of the gridengine without modifying your makefile. 
 
-`rmake` does this by recognizing the jobs you would like to submit and sending them one by one to `qsub`. In order to do so, `rmake` requires that your directory already be setup to handle [recursive make](https://www.gnu.org/software/make/manual/html_node/Recursion.html). I.e. the directory structure must look something like this:
+`rmake` does this by recognizing the jobs you would like to submit and
+sending them one by one to `qsub`. To do so, `rmake` requires
+that your directory already be setup to handle [recursive
+make](https://www.gnu.org/software/make/manual/html_node/Recursion.html). I.e. the
+directory structure must look something like this:
 
     subjects/
      + Makefile
      + make_rest.mk
      + subj1/
-     |  + Makefile  (hopefully a symlink to subjects/Makefile)
+     |  + Makefile  (hopefully a symlink to subjects/make_rest.mk)
      |  + T1.nii.gz (or other data)
      + subj2/
      |  + Makefile
@@ -37,16 +41,14 @@ where the top-level '`Makefile`' contains commands like below to allow recursion
 
 `subj*/Makefile` are symlinks to `subjects/make_rest.mk` *not* `subjects/Makefile.`
 
-`rmake` will perform a brief sanity to check to ensure this directory structure is enforced, but be aware willy-nilly directory structure might result in weird errors.
+This is the way that people are encouraged to structure subject-level processing. `rmake` will perform a brief sanity to check to ensure this directory structure is enforced, but be aware willy-nilly directory structure might result in weird errors.
 
 <sup>1</sup> Because *r* comes after *q*, you see.
 
 # Using `rmake`
 
-The options to `rmake` are predicated on the following conceit:
+To distinguish the options to `rmake` from options to the underlying `make` call we use the convention that lowercase flags are passed to the underlying `make` call, and uppercase flags are passed to `rmake`.
 
- * `-a`: Options to the underlying `make` call.
- * `-A`: Options to `rmake`.
 
 ## `rmake` options
 
@@ -63,16 +65,16 @@ Options with and asterisk `*` require an argument
 
 ## `make` options
 
-Options can be passed too to `make` itself. Lowercase options retain their identifier (e.g. `-n`), and some uppercase options have been mapped to lowercase.
+Options can be passed too to `make` itself. Lowercase options are exactly the same as in the `make` man page (e.g. `-n`), and some uppercase options have been mapped to lowercase.
 
-**These are the `A -> a` mappings:**
+**These are the uppercase flag to lowercase flag mappings:**
 
  * **`-I *`**   include dir         ->  `-a *`
  * **`-B`**     unconditional make  ->  `-b`
  * **`-L`**     check symlink times ->  `-m`
  * **`-W *`**   consider always new ->  `-z *`
 
-The following flags are not callable, either because there is no point (`-{C, f, r, R, S}`) or because they would be actively harmful to our system (`-{j, l}`).
+The following `make` flags are not supported, either because there is no point (`-{C, f, r, R, S}`) or because they would hurt performance(`-{j, l}`).
 
 **Disabled flags:**
 
@@ -88,7 +90,7 @@ Invoking `rmake` is simple. For example, to make the target `sleep` for everyone
 
 >`rmake -T sleep`
 
-`rmake` can be called without the `-T` flag, in which case the default behavior of `make`, were it executed without a target will occur in each subject directory.
+`rmake` can be called without the `-T` flag, in which case the default target will be the first target in the makefile within each subject directory.
 
 If you don't want your jobs to stop, you can pass that command to `make` like so (option can occur in any order):
 

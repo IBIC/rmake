@@ -157,17 +157,18 @@ fi
 # Submit subjects individually to SGE
 for subj in $subjects
 do
+	prefix=
 	if [[ "$subj" =~ ^[0-9] ]]
 	then
 		echo "Adding s to subject ID."
-		subj="s${subj}"
+		prefix="s"
 	fi
 
 	qsub $quit -S /bin/bash <<-EOF
 		#SGE submission options
 		#$ -cwd
 		#$ -V
-		#$ -N ${subj}.${name}
+		#$ -N ${prefix}${subj}.${name}
 
 		make ${subj} ${MAKETARGET} ${makeparam}
 	EOF

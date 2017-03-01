@@ -5,14 +5,14 @@
 # please set to 80 chars wide
 
 make_changes="
-Options for the make call have been converted to lower case. 
+Options for the make call have been converted to lower case.
 These are the changes (* = arg):
 
    -I *	include dir		->	-a *
    -B	unconditional make	->	-b
    -L	check symlink times	->	-m
    -W *	consider always new	->	-z *
-	
+
  X -C 	Ignored (no use)
  X -f	Disabled; we need symlinks named 'Makefile'
  X -j/l Not useful; exit here.
@@ -25,6 +25,9 @@ usage() {
     cat <<-EOF
 
 		This is the help file for rmake. To access make's help, use rmake -h.
+
+		Note rmake will automatically prepend 's' to IDs that start with a
+		number. qsub won't accept jobs that start with a number.
 
 		Options to rmake (* = arg):
 		-----------------
@@ -54,7 +57,7 @@ make_changes(){
 # Make sure directory is set up for recursive make, which our script relies on.
 if [ ! -f Makefile ]
 	then
-		echo 
+		echo
 		echo "In order to run rmake, make needs to be able to run recursively."
 		echo "Please set up a recursive makefile in $PWD named 'Makefile'."
 		echo
@@ -109,20 +112,20 @@ do
 	z) makeparam=$makeparam" --what-if=$OPTARG" ;;
 
 #	Options to rmake
-	C) make_changes 
+	C) make_changes
 		exit 0 ;;
 	D) quit='-verify' ;;
-	H) usage 
+	H) usage
 		exit 0 ;;
 	M) testmake=y ;;
 	N) name=$OPTARG ;;
-	P) setdate=y 
+	P) setdate=y
 		date=$(date +%y%m%d-%H-%I) ;;
-	S) subjects="$OPTARG" 
+	S) subjects="$OPTARG"
 		# Sanity check argument to subjects.
 		subjnum=$(echo $subjects | wc -w)
 		if [ $subjnum -eq 1 ]
-		then 
+		then
 			echo -en "\n!--- Only one argument to -S; ensure your argument is "
 			echo -e "quoted. ---!\n"
 		fi ;;
@@ -154,6 +157,12 @@ fi
 # Submit subjects individually to SGE
 for subj in $subjects
 do
+	if [[ "$subj" =~ ^[0-9] ]]
+	then
+		echo "Adding s to subject ID."
+		subj="s${subj}"
+	fi
+
 	qsub $quit -S /bin/bash <<-EOF
 		#SGE submission options
 		#$ -cwd

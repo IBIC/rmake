@@ -49,6 +49,7 @@ This is the way that people are encouraged to structure subject-level processing
 
 To distinguish the options to `rmake` from options to the underlying `make` call we use the convention that lowercase flags are passed to the underlying `make` call, and uppercase flags are passed to `rmake`.
 
+`qsub` won't accept job names that start with a number, so `rmake` automatically prepends "s" to IDs that start with a number. 
 
 ## `rmake` options
 

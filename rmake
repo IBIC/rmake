@@ -17,12 +17,12 @@ These are the changes (* = arg):
  X -f	Disabled; we need symlinks named 'Makefile'
  X -j/l Not useful; exit here.
  X -r/R Built-in rules/variables aren't used in our applications, no reason to
- 	disable them.
+	disable them.
  X -S	Ignored, '-k' is never inherited in context.
 "
 
 usage() {
-    cat <<-EOF
+	cat <<-EOF
 
 		This is the help file for rmake. To access make's help, use rmake -h.
 
@@ -37,7 +37,7 @@ usage() {
 		   -H	Print this help message and exit.
 		   -M   Debug; print arguments to make call. (No qsub submission.)
 		   -N *	Set job name; if not set, it will be set to target, then a
-		   	random name.
+			random name.
 		   -P   Append <date>_<time> to the jobid.
 		   -S *	Run qsub on these subjects only; if not set, run on all.
 		   -T *	Set the target for make.
@@ -49,26 +49,31 @@ EOF
 }
 
 make_changes(){
-    echo "$make_changes"
+	echo "$make_changes"
+}
+
+errcho(){
+	# Send message to stderr
+	echo "$1" >&2
 }
 
 ### ACTUAL CODE
 
 # Make sure directory is set up for recursive make, which our script relies on.
 if [ ! -f Makefile ]
-	then
-		echo
-		echo "In order to run rmake, make needs to be able to run recursively."
-		echo "Please set up a recursive makefile in $PWD named 'Makefile'."
-		echo
-		exit 1
+then
+	errcho
+	errcho "In order to run rmake, make needs to be able to run recursively."
+	errcho "Please set up a recursive makefile in $PWD named 'Makefile'."
+	errcho
+	exit 1
 fi
 
 # Run rmake without arguments, but warn user.
 if [ $# -eq 0 ]
 then
-    echo "No parameters supplied."
-    echo "Running make with no flags on everyone."
+	errcho "No parameters supplied."
+	errcho "Running make with no flags on everyone."
 fi
 
 # Give a phony name, incase they run it without a target
@@ -79,7 +84,6 @@ name=$(pwgen 5 1)
 subjects=$(find -L . -mindepth 2 -maxdepth 2 -name 'Makefile' | \
 	sed -e 's|/Makefile||' -e 's|./||')
 
-
 makeparam=
 quit=
 MAKETARGET=''
@@ -87,7 +91,7 @@ testmake=n
 setdate=n
 while getopts ":abde:hijklmno:pqstvwz:CDHMN:PS:T:" opt
 do
-    case $opt in
+	case $opt in
 
 #	Options to make
 	a) makeparam=$makeparam" --include-dir=$OPTARG" ;;
@@ -128,16 +132,16 @@ do
 		subjnum=$(echo $subjects | wc -w)
 		if [ $subjnum -eq 1 ]
 		then
-			echo -en "\n!--- Only one argument to -S; ensure your argument is "
-			echo -e "quoted. ---!\n"
+			echo -en "\n!--- Only one argument to -S; ensure your argument" >&2
+			echo -e " is quoted. ---!\n" 									>&2
 		fi ;;
-	T) MAKETARGET="TARGET=$OPTARG"
-		name=$OPTARG ;;
+	T) MAKETARGET="$OPTARG"
+		name=$(echo $OPTARG | sed 's/[[:space:]]/,/g' ) ;;
 
-	?) echo "-$OPTARG is not a valid rmake flag (or is missing an argument)."
+	?) errcho "-$OPTARG is not a valid rmake flag (or is missing an argument)."
 		usage
 		exit 11 ;;
-    esac
+	esac
 done
 
 # Conform whitespace; who knows what you're gonna get.
@@ -147,13 +151,13 @@ echo "Subjects: $subjects"
 # Wait until here to echo make flags so we get them all.
 if [[ $testmake == y ]]
 then
-    echo make "<subj>" $MAKETARGET $makeparam
-    exit 0
+	echo make "<subj> TARGET=\"$MAKETARGET\" $makeparam"
+	exit 0
 fi
 
 if [[ $setdate == y ]]
-	then
-		name=${name}.${date}
+then
+	name=${name}.${date}
 fi
 
 # Submit subjects individually to SGE
@@ -172,11 +176,12 @@ do
 		#$ -V
 		#$ -N ${prefix}${subj}.${name}
 
-		make ${subj} ${MAKETARGET} ${makeparam}
+		make ${subj} TARGET="${MAKETARGET}" ${makeparam}
 	EOF
+
 done
 
 if [[ $quit != '-verify' ]]
-	then
-		echo "$(echo $subjects | wc -w) jobs submitted."
+then
+	echo "$(echo $subjects | wc -w) jobs submitted."
 fi

@@ -75,8 +75,10 @@ fi
 name=$(pwgen 5 1)
 
 # Find only in one and below
-subjects=$(find . -mindepth 2 -maxdepth 2 -name 'Makefile' | \
+## -L traverses symlinks
+subjects=$(find -L . -mindepth 2 -maxdepth 2 -name 'Makefile' | \
 	sed -e 's|/Makefile||' -e 's|./||')
+
 
 makeparam=
 quit=

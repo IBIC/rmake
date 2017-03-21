@@ -4,6 +4,8 @@
 
 # please set to 80 chars wide
 
+user=$(whoami)
+
 make_changes="
 Options for the make call have been converted to lower case.
 These are the changes (* = arg):
@@ -175,15 +177,15 @@ do
 
 	if [[ $oedirs == y ]]
 	then
-		mkdir -p qsub-out qsub-err
+		mkdir -p qout-${user} qerr-${user}
 
 		qsub $quit -S /bin/bash <<-EOF
 			#SGE submission options
 			#$ -cwd
 			#$ -V
 			#$ -N ${prefix}${subj}.${name}
-			#$ -o qsub-out
-			#$ -e qsub-err
+			#$ -o qout-${user}
+			#$ -e qerr-${user}
 
 			make ${subj} TARGET="${MAKETARGET}" ${makeparam}
 		EOF
@@ -204,5 +206,3 @@ if [[ $quit != '-verify' ]]
 then
 	echo "$(echo $subjects | wc -w) jobs submitted."
 fi
-
-echo $oedirs

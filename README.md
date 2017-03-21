@@ -60,7 +60,7 @@ Options with and asterisk `*` require an argument
  * **`-H`**     Print a help message and exit.
  * **`-M`**     Debug; print arguments to make call. (No qsub submission.)
  * **`-N *`**   Set job name; if not set, it will be set to target, then a random name.
- * **`-O`**     Save output/error files to `qsub-out/`  and `qsub-err`.
+ * **`-O`**     Save output/error files to `qout-$user/`  and `qerr-$user`.
  * **`-P`**      Append `<date>_<time>`` to the jobid.
  * **`-S *`**    Run qsub on these subjects only; if not set, run on all.
  * **`-T *`**    Set the target for make. Will accept multiple space-separated targets, if the argument is quoted.

@@ -37,7 +37,8 @@ usage() {
 		   -H	Print this help message and exit.
 		   -M   Debug; print arguments to make call. (No qsub submission.)
 		   -N *	Set job name; if not set, it will be set to target, then a
-			random name.
+				random name.
+		   -O   Save output/error files to qsub-[out|err] directories.
 		   -P   Append <date>_<time> to the jobid.
 		   -S *	Run qsub on these subjects only; if not set, run on all.
 		   -T *	Set the target for make.
@@ -89,7 +90,8 @@ quit=
 MAKETARGET=''
 testmake=n
 setdate=n
-while getopts ":abde:hijklmno:pqstvwz:CDHMN:PS:T:" opt
+
+while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPS:T:" opt
 do
 	case $opt in
 
@@ -125,6 +127,7 @@ do
 		exit 0 ;;
 	M) testmake=y ;;
 	N) name=$OPTARG ;;
+	O) oedirs=y ;;
 	P) setdate=y
 		date=$(date +%y%m%d-%H-%I) ;;
 	S) subjects="$OPTARG"
@@ -170,14 +173,30 @@ do
 		prefix="s"
 	fi
 
-	qsub $quit -S /bin/bash <<-EOF
-		#SGE submission options
-		#$ -cwd
-		#$ -V
-		#$ -N ${prefix}${subj}.${name}
+	if [[ $oedirs == y ]]
+	then
+		mkdir -p qsub-out qsub-err
 
-		make ${subj} TARGET="${MAKETARGET}" ${makeparam}
-	EOF
+		qsub $quit -S /bin/bash <<-EOF
+			#SGE submission options
+			#$ -cwd
+			#$ -V
+			#$ -N ${prefix}${subj}.${name}
+			#$ -o qsub-out
+			#$ -e qsub-err
+
+			make ${subj} TARGET="${MAKETARGET}" ${makeparam}
+		EOF
+	else
+		qsub $quit -S /bin/bash <<-EOF
+			#SGE submission options
+			#$ -cwd
+			#$ -V
+			#$ -N ${prefix}${subj}.${name}
+
+			make ${subj} TARGET="${MAKETARGET}" ${makeparam}
+		EOF
+	fi
 
 done
 
@@ -185,3 +204,5 @@ if [[ $quit != '-verify' ]]
 then
 	echo "$(echo $subjects | wc -w) jobs submitted."
 fi
+
+echo $oedirs

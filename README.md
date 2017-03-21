@@ -55,18 +55,19 @@ To distinguish the options to `rmake` from options to the underlying `make` call
 
 Options with and asterisk `*` require an argument
 
- * **`-C`**      Print only the changes to make flags (a subset of `-H`).
- * **`-D`**      Recon; do everything but submit `qsub` jobs.
- * **`-H`**      Print a help message and exit.
- * **`-M`**      Debug; print arguments to make call. (No qsub submission.)
- * **`-N *`**    Set job name; if not set, it will be set to target, then a random name.
+ * **`-C`**     Print only the changes to make flags (a subset of `-H`).
+ * **`-D`**     Recon; do everything but submit `qsub` jobs.
+ * **`-H`**     Print a help message and exit.
+ * **`-M`**     Debug; print arguments to make call. (No qsub submission.)
+ * **`-N *`**   Set job name; if not set, it will be set to target, then a random name.
+ * **`-O`**     Save output/error files to `qsub-out/`  and `qsub-err`.
  * **`-P`**      Append `<date>_<time>`` to the jobid.
  * **`-S *`**    Run qsub on these subjects only; if not set, run on all.
- * **`-T *`**    Set the target for make.
+ * **`-T *`**    Set the target for make. Will accept multiple space-separated targets, if the argument is quoted.
 
 ## `make` options
 
-Options can be passed too to `make` itself. Lowercase options are exactly the same as in the `make` man page (e.g. `-n`), and some uppercase options have been mapped to lowercase.
+Options can be passed to the underlying `make` call as well. Lowercase options are exactly the same as in the `make` man page (e.g. `-n`), and some uppercase options have been mapped to lowercase.
 
 **These are the uppercase flag to lowercase flag mappings:**
 
@@ -92,6 +93,12 @@ Invoking `rmake` is simple. For example, to make the target `sleep` for everyone
 >`rmake -T sleep`
 
 `rmake` can be called without the `-T` flag, in which case the default target will be the first target in the makefile within each subject directory.
+
+You can also pass multiple targets to `rmake`, for example. Take care to quote them. Targets will be combined into the job name with a comma.
+
+>`rmake -T "sleep1 sleep2"`
+
+The name of this job will be something like `s99.sleep1,sleep2`.
 
 If you don't want your jobs to stop, you can pass that command to `make` like so (option can occur in any order):
 

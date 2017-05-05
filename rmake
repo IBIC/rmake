@@ -75,8 +75,8 @@ fi
 # Run rmake without arguments, but warn user.
 if [ $# -eq 0 ]
 then
-	errcho "No parameters supplied."
-	errcho "Running make with no flags on everyone."
+    errcho "No parameters supplied. Please set a target."
+    exit 1
 fi
 
 # Give a phony name, incase they run it without a target

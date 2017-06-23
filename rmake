@@ -62,15 +62,6 @@ errcho(){
 
 ### ACTUAL CODE
 
-# Make sure directory is set up for recursive make, which our script relies on.
-if [ ! -f Makefile ]
-then
-	errcho
-	errcho "In order to run rmake, make needs to be able to run recursively."
-	errcho "Please set up a recursive makefile in $PWD named 'Makefile'."
-	errcho
-	exit 1
-fi
 
 # Run rmake without arguments, but warn user.
 if [ $# -eq 0 ]
@@ -141,13 +132,25 @@ do
 			echo -e " is quoted. ---!\n" 									>&2
 		fi ;;
 	T) MAKETARGET="$OPTARG"
-		name=$(echo $OPTARG | sed 's/[[:space:]]/,/g' ) ;;
+		name=$(echo $OPTARG | sed -e 's/[[:space:]]/,/g' -e 's|/|-|g' ) ;;
 
 	?) errcho "-$OPTARG is not a valid rmake flag (or is missing an argument)."
 		usage
 		exit 11 ;;
 	esac
 done
+
+# Make sure directory is set up for recursive make, which our script relies on.
+# Don't do this until after options are parsed (in case they're help).
+if [ ! -f Makefile ]
+then
+	errcho
+	errcho "In order to run rmake, make needs to be able to run recursively."
+	errcho "Please set up a recursive makefile in $PWD named 'Makefile'."
+	errcho
+	exit 1
+fi
+
 
 # Conform whitespace; who knows what you're gonna get.
 subjects=$(echo $subjects | tr '\n' ' ' | sed -e 's/[[:space:]]+/ /g')

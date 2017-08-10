@@ -42,6 +42,8 @@ usage() {
 				random name.
 		   -O   Save output/error files to qsub-[out|err] directories.
 		   -P   Append <date>_<time> to the jobid.
+		   -Q * Choose which queue. If left unspecified, queue will be chosen 
+		   		by qsub.	
 		   -S *	Run qsub on these subjects only; if not set, run on all.
 		   -T *	Set the target for make.
 
@@ -83,6 +85,7 @@ quit=
 MAKETARGET=''
 testmake=n
 setdate=n
+queue=
 
 while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPS:T:" opt
 do
@@ -123,6 +126,7 @@ do
 	O) oedirs=y ;;
 	P) setdate=y
 		date=$(date +%y%m%d-%H-%I) ;;
+	Q) queue="-q $OPTARG" ;;
 	S) subjects="$OPTARG"
 		# Sanity check argument to subjects.
 		subjnum=$(echo $subjects | wc -w)
@@ -182,7 +186,7 @@ do
 	then
 		mkdir -p qout-${user} qerr-${user}
 
-		qsub $quit -S /bin/bash <<-EOF
+		qsub $quit $queue -S /bin/bash <<-EOF
 			#SGE submission options
 			#$ -cwd
 			#$ -V
@@ -193,7 +197,7 @@ do
 			make ${subj} TARGET="${MAKETARGET}" ${makeparam}
 		EOF
 	else
-		qsub $quit -S /bin/bash <<-EOF
+		qsub $quit $queue -S /bin/bash <<-EOF
 			#SGE submission options
 			#$ -cwd
 			#$ -V

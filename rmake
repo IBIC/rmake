@@ -1,7 +1,5 @@
 #!/bin/bash
 
-### USAGE
-
 # please set to 80 chars wide
 
 user=$(whoami)
@@ -42,8 +40,8 @@ usage() {
 				random name.
 		   -O   Save output/error files to qsub-[out|err] directories.
 		   -P   Append <date>_<time> to the jobid.
-		   -Q * Choose which queue. If left unspecified, queue will be chosen 
-		   		by qsub.	
+		   -Q * Choose which queue. If left unspecified, queue will be chosen
+		   		by qsub.
 		   -S *	Run qsub on these subjects only; if not set, run on all.
 		   -T *	Set the target for make.
 
@@ -72,7 +70,7 @@ then
     exit 1
 fi
 
-# Give a phony name, incase they run it without a target
+# Give a phony name, in case they run it without a target
 name=$(pwgen 5 1)
 
 # Find only in one and below
@@ -87,7 +85,7 @@ testmake=n
 setdate=n
 queue=
 
-while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPS:T:" opt
+while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPQ:S:T:" opt
 do
 	case $opt in
 
@@ -98,9 +96,9 @@ do
 	e) makeparam=$makeparam" --environment-overrides" ;;
 	h) make --help ; make_changes
 		exit 0 ;;
-	i) makeparam=$makeparam" --ignore errors" ;;
+	i) makeparam=$makeparam" --ignore-errors" ;;
 	j|l) echo "You can't parallize make while using SGE!"
-		exit 11 ;;
+		exit 1 ;;
 	k) makeparam=$makeparam" --keep-going" ;;
 	m) makeparam=$makeparam" --check-symlink-times" ;;
 	n) makeparam=$makeparam" --recon" ;;

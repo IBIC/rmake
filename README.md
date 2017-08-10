@@ -1,15 +1,13 @@
-# SGE-make
-Running make on an SGE 
+# rmake 
+
+Formerly `SGE-make`.
+A better way to submit multiple jobs to a grid engine, with options for controlling the wrapper (`rmake`) and the underlying `make` call.
 
 # Introduction
 
 The purpose of `rmake`<sup>1</sup> is to execute a makefile by submitting individual `make` commands as individual jobs to the gridengine. This is necessary when (1) syntax of your makefile is complicated enough that it does not work correctly wtih `qmake`, or (2) when you want to use the global queue of the gridengine without modifying your makefile. 
 
-`rmake` does this by recognizing the jobs you would like to submit and
-sending them one by one to `qsub`. To do so, `rmake` requires
-that your directory already be setup to handle [recursive
-make](https://www.gnu.org/software/make/manual/html_node/Recursion.html). I.e. the
-directory structure must look something like this:
+`rmake` does this by recognizing the jobs you would like to submit and sending them one by one to `qsub`. To do so, `rmake` requires that your directory already be setup to handle [recursive make](https://www.gnu.org/software/make/manual/html_node/Recursion.html). In other words, the directory structure must look something like this:
 
     subjects/
      + Makefile
@@ -43,13 +41,14 @@ where the top-level '`Makefile`' contains commands like below to allow recursion
 
 This is the way that people are encouraged to structure subject-level processing. `rmake` will perform a brief sanity to check to ensure this directory structure is enforced, but be aware willy-nilly directory structure might result in weird errors.
 
-<sup>1</sup> Because *r* comes after *q*, you see.
+<sup>1</sup> Because "*r*" comes after "*q*," you see.
 
 # Using `rmake`
 
-To distinguish the options to `rmake` from options to the underlying `make` call we use the convention that lowercase flags are passed to the underlying `make` call, and uppercase flags are passed to `rmake`.
+To distinguish the options to `rmake` from options to the underlying `make` call we use the convention that lowercase flags are passed to the underlying 
+`make` call, and uppercase flags control `rmake`.
 
-`qsub` won't accept job names that start with a number, so `rmake` automatically prepends "s" to IDs that start with a number. 
+**Note**: `qsub` won't accept job names that start with a number, so `rmake` automatically prepends "s" to IDs that start with a number. 
 
 ## `rmake` options
 
@@ -59,11 +58,20 @@ Options with and asterisk `*` require an argument
  * **`-D`**     Recon; do everything but submit `qsub` jobs.
  * **`-H`**     Print a help message and exit.
  * **`-M`**     Debug; print arguments to make call. (No qsub submission.)
- * **`-N *`**   Set job name; if not set, it will be set to target, then a random name.
+ * **`-N *`**   Set job name; if not set, it will be set to target, then   
+                a random name.
  * **`-O`**     Save output/error files to `qout-$user/`  and `qerr-$user`.
- * **`-P`**      Append `<date>_<time>`` to the jobid.
- * **`-S *`**    Run qsub on these subjects only; if not set, run on all.
- * **`-T *`**    Set the target for make. Will accept multiple space-separated targets, if the argument is quoted.
+ * **`-P`**     Append `<date>_<time>`` to the jobid.
+ * **`-Q *`**   Choose which queue. If left unspecified, queue will be chosen
+                by qsub.
+ * **`-S *`**   Run qsub on these subjects only; if not set, run on all.
+ * **`-T *`**   Set the target for make. Will accept multiple 
+                space-separated targets, if the argument is quoted.
+
+**Note**: Mistyping or chosing a nonexistent queue will result in the error 
+
+    Unable to run job: Job was rejected because job requests unknown queue "<queue>".
+
 
 ## `make` options
 
@@ -118,14 +126,23 @@ You can also use a regex. For example, to select only subjects beginning with `1
 
 Note that the regex must be quoted as well, as it is expanded by the shell before being sent to `rmake`.
 
-# Output
+## Output
 
-Each `qsub` job results in the creation of two files, named `name.[e,o]ID`, where `name` is the name you gave the job, and `ID` is a numerical ID `qsub` assigned it.
+Each `qsub` job results in the creation of two files, named `name.[e,o]ID`, where `name` is the name you gave the job, and `ID` is a numerical ID `qsub` assigned it. If you pass the `-O` option to rmake, these will instead be sorted to directories `qout-$user` and `qerr-$user`
 
 The files with `e` in the name contain the output of `STDERR` if the job had been executed normally, `o` files, `STDOUT`. 
 
 These files may be removed if you are satisfied with how your job executed.
 
+# Using the example
+
+You'll notice that the repository contains 10 `test.*` directories, each with a single symlink named `Makefile`. The repository is set up so that you can test rmake right here by running `rmake -T sleep`, which creates the files `hexdump.txt` and `sleep.txt`
+
+The target `sleep` relies on `hexdump.txt`, so in order to rerun jobs, all the `hexdump.txt` files need to be removed.
+
 # Contact
 
-Trevor McAllister-Day -- `tkmday@uw.edu`
+Trevor K.M. Day 
+    Email: `tkmday@uw.edu`
+    GitHub: @TrevorKMDay
+

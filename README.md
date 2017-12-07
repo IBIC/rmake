@@ -1,6 +1,6 @@
 # rmake 
 
-Formerly `SGE-make`.
+(*Formerly `SGE-make`.*)
 A better way to submit multiple jobs to a grid engine, with options for controlling the wrapper (`rmake`) and the underlying `make` call.
 
 # Introduction
@@ -31,6 +31,8 @@ where the top-level '`Makefile`' contains commands like below to allow recursion
     
     $(SUBJECTS):
         $(MAKE) --directory=$@ $(TARGET)
+    
+    include make_rest.mk
 
 `subjects/make_rest.mk` (for example), contains actual commands, for example:
 
@@ -39,7 +41,7 @@ where the top-level '`Makefile`' contains commands like below to allow recursion
 
 `subj*/Makefile` are symlinks to `subjects/make_rest.mk` *not* `subjects/Makefile.`
 
-This is the way that people are encouraged to structure subject-level processing. `rmake` will perform a brief sanity to check to ensure this directory structure is enforced, but be aware willy-nilly directory structure might result in weird errors.
+`rmake` will perform a brief sanity to check to ensure this directory structure is enforced, but be aware willy-nilly directory structure might result in weird errors.
 
 <sup>1</sup> Because "*r*" comes after "*q*," you see.
 
@@ -54,19 +56,18 @@ To distinguish the options to `rmake` from options to the underlying `make` call
 
 Options with and asterisk `*` require an argument
 
- * **`-C`**     Print only the changes to make flags (a subset of `-H`).
+ * **`-C`**     Print only the changes to make flags (a subset of `-H`).y `SGE-make`.
  * **`-D`**     Recon; do everything but submit `qsub` jobs.
  * **`-H`**     Print a help message and exit.
  * **`-M`**     Debug; print arguments to make call. (No qsub submission.)
  * **`-N *`**   Set job name; if not set, it will be set to target, then   
                 a random name.
- * **`-O`**     Save output/error files to `qout-$user/`  and `qerr-$user`.
- * **`-P`**     Append `<date>_<time>`` to the jobid.
+ * **`-O`**     Save output/error files to `qout-${user}/`  and `qerr-${user}/`.
+ * **`-P`**     Append `[date]_[time]` to the jobid.
  * **`-Q *`**   Choose which queue. If left unspecified, queue will be chosen
                 by qsub.
  * **`-S *`**   Run qsub on these subjects only; if not set, run on all.
- * **`-T *`**   Set the target for make. Will accept multiple 
-                space-separated targets, if the argument is quoted.
+ * **`-T *`**   Set the target for make. Will accept multiple                 space-separated targets, if the argument is quoted.
 
 **Note**: Mistyping or chosing a nonexistent queue will result in the error 
 
@@ -100,7 +101,7 @@ Invoking `rmake` is simple. For example, to make the target `sleep` for everyone
 
 >`rmake -T sleep`
 
-`rmake` can be called without the `-T` flag, in which case the default target will be the first target in the makefile within each subject directory.
+`rmake` can be called without the `-T` flag, in which case the default target will be the first target in the makefile within each subject directory. This is the default behavior of `make`.
 
 You can also pass multiple targets to `rmake`, for example. Take care to quote them. Targets will be combined into the job name with a comma.
 
@@ -120,7 +121,7 @@ Select subjects like so:
 
 **Note the argument to -S has to be quoted (if there is more than one). `rmake` will perform a small sanity check if it thinks you have misquote the argument to `-S`, but will attempt to run.**
 
-You can also use a regex. For example, to select only subjects beginning with `100-`:
+You can also use a regex. For example, to select only subjects with six-digit ideas beginning with `100`:
 
 >`rmake -T sleep -S "100???"`
 

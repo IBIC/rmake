@@ -89,7 +89,7 @@ while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPQ:S:T:" opt
 do
 	case ${opt} in
 
-#	Options to make
+	# Options to make
 	a) makeparam=${makeparam}" --include-dir=${OPTARG}" ;;
 	b) makeparam=${makeparam}" --always-make" ;;
 	d) makeparam=${makeparam}" --debug" ;;
@@ -113,7 +113,7 @@ do
 		exit 0 ;;
 	z) makeparam=${makeparam}" --what-if=${OPTARG}" ;;
 
-#	Options to rmake
+	# Options to rmake
 	C) make_changes
 		exit 0 ;;
 	D) quit='-verify' ;;

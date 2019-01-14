@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# please set to 80 chars wide
+# Please set to 80 chars wide
 
 user=$(whoami)
 
@@ -51,21 +51,20 @@ usage() {
 EOF
 }
 
+# List the flags for make that were modified (made lowercase for rmake)
 make_changes(){
 	echo "${make_changes}"
 }
 
+# Send message to stderr
 errcho(){
-	# Send message to stderr
 	echo "${1}" >&2
 }
 
-### ACTUAL CODE
-
+### ACTUAL CODE ################################################################
 
 # Run rmake without arguments, but warn user.
-if [ ${#} -eq 0 ]
-then
+if [ ${#} -eq 0 ] ; then
     errcho "No parameters supplied. Please set a target."
     exit 1
 fi
@@ -85,8 +84,7 @@ testmake=n
 setdate=n
 queue=
 
-while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPQ:S:T:" opt
-do
+while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPQ:S:T:" opt ; do
 	case ${opt} in
 
 	# Options to make
@@ -104,7 +102,8 @@ do
 	n) makeparam=${makeparam}" --recon" ;;
 	o) makeparam=${makeparam}" --old-file=${OPTARG}" ;;
 	p) makeparam=${makeparam}" --print-data-base" ;;
-	q) makeparam=${makeparam}" --question" ;;
+	q) makeparam=${makeparam}" --question"
+		qset="yes" ;;
 	s) makeparam=${makeparam}" --silent" ;;
 	t) makeparam=${makeparam}" --touch" ;;
 	v) make --version
@@ -128,8 +127,7 @@ do
 	S) subjects="${OPTARG}"
 		# Sanity check argument to subjects.
 		subjnum=$(echo ${subjects} | wc -w)
-		if [ ${subjnum} -eq 1 ]
-		then
+		if [ ${subjnum} -eq 1 ] ; then
 			echo -en "\n!--- Only one argument to -S; ensure your argument" >&2
 			echo -e " is quoted. ---!\n" 									>&2
 		fi ;;
@@ -145,8 +143,7 @@ done
 
 # Make sure directory is set up for recursive make, which our script relies on.
 # Don't do this until after options are parsed (in case they're help).
-if [ ! -f Makefile ]
-then
+if [ ! -f Makefile ] ; then
 	errcho
 	errcho "In order to run rmake, make needs to be able to run recursively."
 	errcho "Please set up a recursive makefile in ${PWD} named 'Makefile'."
@@ -154,35 +151,30 @@ then
 	exit 1
 fi
 
-
 # Conform whitespace; who knows what you're gonna get.
 subjects=$(echo ${subjects} | tr '\n' ' ' | sed -e 's/[[:space:]]+/ /g')
 echo "Subjects: ${subjects}"
 
 # Wait until here to echo make flags so we get them all.
-if [[ ${testmake} == y ]]
-then
+if [[ ${testmake} == y ]] ; then
 	echo make "<subj> TARGET=\"${MAKETARGET}\" ${makeparam}"
 	exit 0
 fi
 
-if [[ ${setdate} == y ]]
-then
+# Add the date to the job name if requested
+if [[ ${setdate} == y ]] ; then
 	name=${name}.${date}
 fi
 
 # Submit subjects individually to SGE
-for subj in ${subjects}
-do
+for subj in ${subjects} ; do
 	prefix=
-	if [[ "${subj}" =~ ^[0-9] ]]
-	then
+	if [[ "${subj}" =~ ^[0-9] ]] ; then
 		echo "Adding s to subject ID."
 		prefix="s"
 	fi
 
-	if [[ ${oedirs} == y ]]
-	then
+	if [[ ${oedirs} == y ]] ; then
 		mkdir -p qout-${user} qerr-${user}
 
 		qsub ${quit} ${queue} -S /bin/bash <<-EOF
@@ -208,7 +200,11 @@ do
 
 done
 
-if [[ ${quit} != '-verify' ]]
-then
+if [[ ${quit} != '-verify' ]] ; then
 	echo "$(echo ${subjects} | wc -w) jobs submitted."
+fi
+
+if [[ ${qset} == "yes" ]] ; then
+	echo -n "Warning: You set '-q', which runs no recipe. "
+	echo 	"This is NOT equivalent to '-Q', which sets the queue."
 fi

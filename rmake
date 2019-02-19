@@ -65,15 +65,16 @@ errcho(){
 
 # Run rmake without arguments, but warn user.
 if [ ${#} -eq 0 ] ; then
+
     errcho "No parameters supplied. Please set a target."
     exit 1
+
 fi
 
 # Give a phony name, in case they run it without a target
 name=$(pwgen 5 1)
 
-# Find only in one and below
-## -L traverses symlinks
+# Find only in one and below; -L traverses symlinks
 subjects=$(find -L . -mindepth 2 -maxdepth 2 -name 'Makefile' | \
 			sed -e 's|/Makefile||' -e 's|./||')
 
@@ -138,17 +139,21 @@ while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPQ:S:T:" opt ; do
 		"-${OPTARG} is not a valid rmake flag (or is missing an argument)."
 		usage
 		exit 11 ;;
+
 	esac
+
 done
 
 # Make sure directory is set up for recursive make, which our script relies on.
 # Don't do this until after options are parsed (in case they're help).
 if [ ! -f Makefile ] ; then
+
 	errcho
 	errcho "In order to run rmake, make needs to be able to run recursively."
 	errcho "Please set up a recursive makefile in ${PWD} named 'Makefile'."
 	errcho
 	exit 1
+
 fi
 
 # Conform whitespace; who knows what you're gonna get.
@@ -168,26 +173,32 @@ fi
 
 # Submit subjects individually to SGE
 for subj in ${subjects} ; do
+
 	prefix=
 	if [[ "${subj}" =~ ^[0-9] ]] ; then
+
 		echo "Adding s to subject ID."
 		prefix="s"
+
 	fi
 
 	if [[ ${oedirs} == y ]] ; then
-		mkdir -p qout-${user} qerr-${user}
+
+		mkdir -p q{out,err}.${prefix}.${user}
 
 		qsub ${quit} ${queue} -S /bin/bash <<-EOF
 			#SGE submission options
 			#$ -cwd
 			#$ -V
 			#$ -N ${prefix}${subj}.${name}
-			#$ -o qout-${user}
-			#$ -e qerr-${user}
+			#$ -o qout.${prefix}.${user}
+			#$ -e qerr.${prefix}.${user}
 
 			make ${subj} TARGET="${MAKETARGET}" ${makeparam}
 		EOF
+
 	else
+
 		qsub ${quit} ${queue} -S /bin/bash <<-EOF
 			#SGE submission options
 			#$ -cwd
@@ -196,15 +207,20 @@ for subj in ${subjects} ; do
 
 			make ${subj} TARGET="${MAKETARGET}" ${makeparam}
 		EOF
+
 	fi
 
 done
 
 if [[ ${quit} != '-verify' ]] ; then
+
 	echo "$(echo ${subjects} | wc -w) jobs submitted."
+
 fi
 
 if [[ ${qset} == "yes" ]] ; then
-	echo -n "Warning: You set '-q', which runs no recipe. "
+
+	echo -n "Warning: You set '-q', which runs no recipe."
 	echo 	"This is NOT equivalent to '-Q', which sets the queue."
+
 fi

@@ -86,59 +86,60 @@ setdate=n
 queue=
 
 while getopts ":abde:hijklmno:pqstvwz:CDHMN:OPQ:S:T:" opt ; do
+
 	case ${opt} in
 
-	# Options to make
-	a) makeparam=${makeparam}" --include-dir=${OPTARG}" ;;
-	b) makeparam=${makeparam}" --always-make" ;;
-	d) makeparam=${makeparam}" --debug" ;;
-	e) makeparam=${makeparam}" --environment-overrides" ;;
-	h) make --help ; make_changes
-		exit 0 ;;
-	i) makeparam=${makeparam}" --ignore-errors" ;;
-	j|l) echo "You can't parallize make while using SGE!"
-		exit 1 ;;
-	k) makeparam=${makeparam}" --keep-going" ;;
-	m) makeparam=${makeparam}" --check-symlink-times" ;;
-	n) makeparam=${makeparam}" --recon" ;;
-	o) makeparam=${makeparam}" --old-file=${OPTARG}" ;;
-	p) makeparam=${makeparam}" --print-data-base" ;;
-	q) makeparam=${makeparam}" --question"
-		qset="yes" ;;
-	s) makeparam=${makeparam}" --silent" ;;
-	t) makeparam=${makeparam}" --touch" ;;
-	v) make --version
-		exit 0 ;;
-	w) make --print-directory
-		exit 0 ;;
-	z) makeparam=${makeparam}" --what-if=${OPTARG}" ;;
+		# Options to make
+		a) makeparam=${makeparam}" --include-dir=${OPTARG}" ;;
+		b) makeparam=${makeparam}" --always-make" ;;
+		d) makeparam=${makeparam}" --debug" ;;
+		e) makeparam=${makeparam}" --environment-overrides" ;;
+		h) make --help ; make_changes
+			exit 0 ;;
+		i) makeparam=${makeparam}" --ignore-errors" ;;
+		j|l) echo "You can't parallize make while using SGE!"
+			 exit 1 ;;
+		k) makeparam=${makeparam}" --keep-going" ;;
+		m) makeparam=${makeparam}" --check-symlink-times" ;;
+		n) makeparam=${makeparam}" --recon" ;;
+		o) makeparam=${makeparam}" --old-file=${OPTARG}" ;;
+		p) makeparam=${makeparam}" --print-data-base" ;;
+		q) makeparam=${makeparam}" --question"
+			qset="yes" ;;
+		s) makeparam=${makeparam}" --silent" ;;
+		t) makeparam=${makeparam}" --touch" ;;
+		v) make --version
+			exit 0 ;;
+		w) make --print-directory
+			exit 0 ;;
+		z) makeparam=${makeparam}" --what-if=${OPTARG}" ;;
 
-	# Options to rmake
-	C) make_changes
-		exit 0 ;;
-	D) quit='-verify' ;;
-	H) usage
-		exit 0 ;;
-	M) testmake=y ;;
-	N) name=${OPTARG} ;;
-	O) oedirs=y ;;
-	P) setdate=y
-		date=$(date +%y%m%d-%H-%I) ;;
-	Q) queue="-q ${OPTARG}" ;;
-	S) subjects="${OPTARG}"
-		# Sanity check argument to subjects.
-		subjnum=$(echo ${subjects} | wc -w)
-		if [ ${subjnum} -eq 1 ] ; then
-			echo -en "\n!--- Only one argument to -S; ensure your argument" >&2
-			echo -e " is quoted. ---!\n" 									>&2
-		fi ;;
-	T) MAKETARGET="${OPTARG}"
-		name=$(echo ${OPTARG} | sed -e 's/[[:space:]]/,/g' -e 's|/|-|g' ) ;;
+		# Options to rmake
+		C) make_changes
+			exit 0 ;;
+		D) quit='-verify' ;;
+		H) usage
+			exit 0 ;;
+		M) testmake=y ;;
+		N) name=${OPTARG} ;;
+		O) oedirs=y ;;
+		P) setdate=y
+			date=$(date +%y%m%d-%H-%I) ;;
+		Q) queue="-q ${OPTARG}" ;;
+		S) subjects="${OPTARG}"
+			# Sanity check argument to subjects.
+			subjnum=$(echo ${subjects} | wc -w)
+			if [ ${subjnum} -eq 1 ] ; then
+				echo -en "\n!--- Only one argument to -S; ensure your" 	>&2
+				echo -e " argument is quoted. ---!\n" 				 	>&2
+			fi ;;
+		T) MAKETARGET="${OPTARG}"
+			name=$(echo ${OPTARG} | sed -e 's/[[:space:]]/,/g' -e 's|/|-|g' ) ;;
 
-	?) errcho \
-		"-${OPTARG} is not a valid rmake flag (or is missing an argument)."
-		usage
-		exit 11 ;;
+		?) errcho \
+			"-${OPTARG} is not a valid rmake flag (or is missing an argument)."
+			usage
+			exit 11 ;;
 
 	esac
 
@@ -174,6 +175,8 @@ fi
 # Submit subjects individually to SGE
 for subj in ${subjects} ; do
 
+	# If the subject ID begins with a number, qsub will choke, so prepend with
+	# an 's' if necessary
 	prefix=
 	if [[ "${subj}" =~ ^[0-9] ]] ; then
 
@@ -184,21 +187,24 @@ for subj in ${subjects} ; do
 
 	if [[ ${oedirs} == y ]] ; then
 
-		mkdir -p q{out,err}.${prefix}.${user}
+		# If output/error directories are requested, create them and add that
+		# option to the qsub command
+		mkdir -p q{out,err}.${prefix}${subj}.${user}
 
 		qsub ${quit} ${queue} -S /bin/bash <<-EOF
 			#SGE submission options
 			#$ -cwd
 			#$ -V
 			#$ -N ${prefix}${subj}.${name}
-			#$ -o qout.${prefix}.${user}
-			#$ -e qerr.${prefix}.${user}
+			#$ -o qout.${prefix}${subj}.${user}
+			#$ -e qerr.${prefix}${subj}.${user}
 
 			make ${subj} TARGET="${MAKETARGET}" ${makeparam}
 		EOF
 
 	else
 
+		# If no output/error directories, submit this way
 		qsub ${quit} ${queue} -S /bin/bash <<-EOF
 			#SGE submission options
 			#$ -cwd
@@ -212,12 +218,14 @@ for subj in ${subjects} ; do
 
 done
 
+# List how many jobs were submitted
 if [[ ${quit} != '-verify' ]] ; then
 
 	echo "$(echo ${subjects} | wc -w) jobs submitted."
 
 fi
 
+# Helpful warning
 if [[ ${qset} == "yes" ]] ; then
 
 	echo -n "Warning: You set '-q', which runs no recipe."

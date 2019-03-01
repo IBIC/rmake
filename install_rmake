@@ -1,3 +1,8 @@
 #!/bin/bash
 
+# Neurodegeneration machines
 cp --verbose /mnt/home/tkmday/rmake/rmake /mnt/home/ibic/bin
+
+# Copy to praxic
+scp /mnt/home/tkmday/rmake/rmake \
+	$(whoami)@praxic.ibic.washington.edu://mnt/praxic/IBIC_Pipelines/bin/
